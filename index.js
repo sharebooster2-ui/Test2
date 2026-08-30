@@ -806,9 +806,11 @@ app.post("/api/admin/events", requireAdmin, upload.single("image"), asyncRoute(a
 }));
 
 app.put("/api/admin/events/:id", requireAdmin, upload.single("image"), asyncRoute(async (req, res) => {
-  const existing = await query("SELECT image_url FROM events WHERE id = $1", [Number(req.params.id)]);
+  const existing = await query("SELECT image_url, rate_rules FROM events WHERE id = $1", [Number(req.params.id)]);
   const imagePath = req.file ? `/court-images/${req.file.filename}` : (clean(req.body.imageUrl, 1000) || existing.rows[0]?.image_url || "");
-  const values = eventValues(req.body, imagePath);
+  const body = { ...req.body };
+  if (!body.rateRules && existing.rows[0]?.rate_rules) body.rateRules = JSON.stringify(existing.rows[0].rate_rules);
+  const values = eventValues(body, imagePath);
   if (values.error) {
     if (req.file) fs.unlink(req.file.path, () => {});
     return res.status(400).json({ error: values.error });
@@ -966,7 +968,11 @@ function courtRateRules(body) {
   const parsed = rules
     .map(([label, start, end, price]) => ({ label, start, end, price: Number(price) }))
     .filter((rule) => Number.isFinite(rule.price) && rule.price > 0);
-  return parsed;
+  if (parsed.length) return parsed;
+  const fee = Number(body.fee);
+  return Number.isFinite(fee) && fee > 0
+    ? [{ label: "Standard rate", start: "00:00", end: "23:59", price: fee }]
+    : [];
 }
 
 function eventValues(body, imagePath = "") {
@@ -1003,9 +1009,10 @@ async function ensureCourtSlots(eventId, date) {
   const closing = timeMinutes(String(court.rows[0].closing_time).slice(0, 5));
   const rules = jsonArray(court.rows[0].rate_rules);
   const fallbackPrice = Number(court.rows[0].fee || 0);
+  const standardRule = rules.find((rule) => rule.label === "Standard rate");
   for (let minute = opening; minute < closing; minute += 60) {
     const end = Math.min(minute + 60, closing);
-    const matchingRule = rules.find((rule) => {
+    const matchingRule = standardRule || rules.find((rule) => {
       const start = timeMinutes(rule.start);
       const ruleEnd = timeMinutes(rule.end);
       return !Number.isNaN(start) && !Number.isNaN(ruleEnd) && minute >= start && minute < ruleEnd;

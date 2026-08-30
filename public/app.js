@@ -439,8 +439,6 @@ function showCourtModal(event = null) {
     <label>Contact number<input required name="contact" value="${esc(event?.contact || "")}" placeholder="09XXXXXXXXX"></label>
     <label>Opening time<input required type="time" name="openingTime" value="${esc(event?.opening_time?.slice(0, 5) || "07:00")}"></label>
     <label>Closing time<input required type="time" name="closingTime" value="${esc(event?.closing_time?.slice(0, 5) || "23:00")}"></label>
-     <div class="full-width review-admin-note">Ratings are submitted by members after an approved booking. Admins cannot set or edit ratings.</div>
-     <div class="full-width rate-editor"><span class="field-heading">Rates by time <span class="field-hint">(at least one required)</span></span><div class="rate-editor-grid"><label>Early morning<input type="number" min="0" step="1" name="morningPrice" value="${esc(rulePrice(0))}"></label><label>Daytime<input type="number" min="0" step="1" name="daytimePrice" value="${esc(rulePrice(1))}"></label><label>Peak hours<input type="number" min="0" step="1" name="eveningPrice" value="${esc(rulePrice(2))}"></label></div></div>
     <label class="full-width">Amenities<input name="amenities" value="${esc(amenities)}" placeholder="Lights, Restrooms, Parking, Pickleball Court, Food & Coffee"></label>
     <label>Maximum players<input required type="number" min="1" name="maxParticipants" value="${event?.max_participants || 20}"></label>
      <label>Default booking fee<input required type="number" min="1" step="0.01" name="fee" value="${event?.fee || rulePrice(0)}"></label>
@@ -461,13 +459,6 @@ function showCourtModal(event = null) {
      }
      if (imageUrl && !/^https?:\/\//i.test(imageUrl) && !imageUrl.startsWith("/court-images/")) {
        toast("Use a valid http(s) image URL.", "error");
-       return;
-     }
-     const validRateCount = ["morningPrice", "daytimePrice", "eveningPrice"]
-       .map((name) => Number(form.elements[name].value))
-       .filter((price) => Number.isFinite(price) && price > 0).length;
-     if (!validRateCount) {
-       toast("Add at least one rate greater than ₱0.", "error");
        return;
      }
     const button = submitEvent.target.querySelector("button[type=submit]");
