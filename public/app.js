@@ -17,7 +17,6 @@ const state = {
   myReview: null,
 };
 
-// Short helpers for selecting elements and formatting data
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const esc = (value) =>
@@ -63,7 +62,7 @@ const localDate = (date = new Date()) => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-// Reads rate and amenity data whether the server returns a string or an array
+
 const courtRules = (court) => {
   try {
     return Array.isArray(court.rate_rules)
@@ -91,7 +90,7 @@ const courtPriceRange = (court) => {
   const high = Math.max(...prices);
   return low === high ? money(low) : `${money(low)}–${money(high)}`;
 };
-// Replaces the old brand name in newly created elements
+
 function applyBranding(root = document.body) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let node;
@@ -107,7 +106,7 @@ new MutationObserver(() => applyBranding()).observe(document.body, {
   subtree: true,
 });
 
-// Common helper for calling server endpoints
+// Iisang paraan ng pagtawag sa mga endpoint ng server
 async function api(url, options = {}) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
@@ -152,7 +151,7 @@ function setBusy(button, busy, label = "Working…") {
   }
 }
 
-// Switches between the login, registration, reset, and admin screens
+// Nagpapalit ng login, register, reset, o admin na screen
 function switchAuth(tab) {
   $$(".auth-tab").forEach((button) =>
     button.classList.toggle("active", button.dataset.authTab === tab),
@@ -169,7 +168,7 @@ function switchAuth(tab) {
   );
 }
 
-// Processes login and member or admin account registration
+// Processes login and member or admin account creation.
 async function handleAuth(event, type) {
   event.preventDefault();
   const button = event.target.querySelector("button[type=submit]");
@@ -206,7 +205,7 @@ async function handleAuth(event, type) {
   }
 }
 
-// Requests a link to reset a forgotten password
+// naga pangayo ug link para ma reset at nakalimtan nimo nga password
 async function handleForgotPassword(event) {
   event.preventDefault();
   const button = event.target.querySelector("button[type=submit]");
@@ -226,7 +225,7 @@ async function handleForgotPassword(event) {
   }
 }
 
-// Saves the new password from the reset link
+// gina save ang bagong password sa reset link
 async function handleResetPassword(event) {
   event.preventDefault();
   const form = event.target;
@@ -254,7 +253,7 @@ async function handleResetPassword(event) {
   }
 }
 
-// Prepares the main app after a successful login
+// Initializes the main app after a successful login.
 async function bootApp() {
   $("#auth-view").classList.add("hidden");
   $("#app-view").classList.remove("hidden");
@@ -274,7 +273,7 @@ function updateUserChrome() {
   $("#schedule-nav").classList.toggle("hidden", state.user?.role === "admin");
 }
 
-// Switches pages and loads the data required by the selected page
+// Switches between pages and fetches the appropriate data for each page.
 async function navigate(page) {
   state.page = page;
   $$(".nav-item").forEach((item) =>
@@ -309,7 +308,7 @@ async function navigate(page) {
   if (window.innerWidth <= 720) $(".sidebar")?.classList.remove("open");
 }
 
-// Renders the dashboard and upcoming bookings
+// Renders the dashboard and upcoming bookings.
 async function renderDashboard() {
   const [dashboard, events, registrations, notifications] = await Promise.all([
     api("/api/dashboard"),
@@ -347,7 +346,7 @@ async function renderDashboard() {
   </div>`;
 }
 
-// Renders the list of available courts
+// Renders a list of available courts.
 async function renderEvents() {
   const data = await api("/api/events");
   state.events = data.events;
@@ -358,7 +357,7 @@ async function renderEvents() {
   $("#event-search").addEventListener("input", filterEvents);
 }
 
-// Creates a card for a court
+// Gumagawa ng card para sa isang court
 function courtCard(event, index = state.events.indexOf(event)) {
   const meta = [
     {
@@ -418,7 +417,7 @@ function courtCard(event, index = state.events.indexOf(event)) {
   </article>`;
 }
 
-// Displays court details and available time slots
+// Displays court details and available time slots.
 async function showCourtDetails(courtId, date = localDate()) {
   state.page = "court-detail";
   state.selectedCourt = null;
@@ -446,7 +445,7 @@ async function showCourtDetails(courtId, date = localDate()) {
   }
 }
 
-// Renders court details, reviews, and the slot picker
+// Renders court details, reviews, and the slot picker.
 function renderCourtDetails() {
   const court = state.selectedCourt;
   const slots = state.currentSlots;
@@ -540,7 +539,7 @@ function renderCourtDetails() {
   });
 }
 
-// Updates the summary of the selected date, time, and price
+// Updates the summary of the selected date, time, and amount.
 function updateBookingSummary() {
   const list = $("#selected-slot-list");
   const totalElement = $("#slot-total");
@@ -574,7 +573,7 @@ function eventCard(event) {
   return `<article class="event-card" data-category="${esc(event.category)}" data-search="${esc(`${event.name} ${event.location}`.toLowerCase())}"><div class="event-card-top ${colors[event.category] || ""}"><span class="category">${esc(event.category)}</span><div class="event-date-large">${dateText(event.event_date, { month: "short", day: "numeric" })}</div></div><div class="event-card-body"><h3>${esc(event.name)}</h3><p>${esc(event.description)}</p><div class="event-details"><span>◷ ${dateText(event.event_date, { weekday: "short", hour: "numeric", minute: "2-digit" })}</span><span>⌖ ${esc(event.location)}</span></div><div class="event-bottom"><div><div class="fee">${money(event.fee)} <small>entry</small></div><div class="slots">${full ? "Sold out" : `${event.available_slots} spots left`}</div></div>${event.registered ? statusPill(event.registration_status || "pending") : `<button class="button ${full ? "ghost" : "primary"} small register-event" data-id="${event.id}" ${full ? "disabled" : ""}>${full ? "Full" : "Request spot"} ${full ? "" : "↗"}</button>`}</div></div></article>`;
 }
 
-// Filters court cards by category and search text
+// Filters court cards by category and search term.
 function filterEvents() {
   const category = $("#category-filter").value.toLowerCase();
   const search = $("#event-search").value.toLowerCase();
@@ -587,7 +586,7 @@ function filterEvents() {
   );
 }
 
-// Renders the current user's bookings
+// Renders the current user’s bookings.
 async function renderRegistrations() {
   const data = await api("/api/registrations");
   state.registrations = data.registrations;
@@ -595,7 +594,7 @@ async function renderRegistrations() {
     `<div class="page"><div class="page-heading"><div><p class="eyebrow">YOUR COURT TIME</p><h1>My bookings</h1><p>Every court you’ve requested, all in one place.</p></div><button class="button lime small" data-page="events">Browse courts ↗</button></div><div class="card table-card"><table class="data-table"><thead><tr><th>Court</th><th>Date & location</th><th>Booked slots</th><th>Booking</th><th>Payment</th><th></th></tr></thead><tbody>${data.registrations.map((item) => `<tr><td><strong>${esc(item.name)}</strong><br><span style="font-size:10px;color:#9aa69f">${esc(item.category)}</span></td><td>${dateText(item.booking_date || item.event_date)}<br><span style="font-size:10px;color:#9aa69f">${esc(item.location)}</span></td><td>${item.slot_times ? `<span class="booking-slot-times">${esc(item.slot_times)}</span>` : "Court request"}</td><td>${statusPill(item.status)}</td><td>${item.payment_status ? statusPill(item.payment_status) : `<span class="pill draft">${item.status === "confirmed" ? "Not submitted" : "Awaiting approval"}</span>`}</td><td>${item.status === "confirmed" && (!item.payment_status || item.payment_status === "rejected") ? `<button class="button ghost small pay-for-event" data-id="${item.id}">Pay now</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="6"><div class="empty-state"><strong>No bookings yet</strong><p>Browse courts to request your next spot.</p></div></td></tr>`}</tbody></table></div></div>`;
 }
 
-// Renders manual schedules and automatic court bookings
+// Renders the manual schedule and automatic court bookings.
 async function renderSchedule() {
   const data = await api("/api/schedules");
   state.schedules = data.schedules;
@@ -626,7 +625,7 @@ async function renderSchedule() {
   $("#cancel-schedule-edit").addEventListener("click", () => renderSchedule());
 }
 
-// Renders the payment form and payment instructions
+// Renders the payment form and payment methods.
 async function renderPayments() {
   const [registrations, payments] = await Promise.all([
     api("/api/registrations"),
@@ -670,7 +669,7 @@ async function renderPayments() {
   });
 }
 
-// Renders the history of submitted payment proofs
+// Renders the history of submitted payment proofs.
 async function renderPaymentHistory() {
   const data = await api("/api/payments");
   state.payments = data.payments;
@@ -678,7 +677,7 @@ async function renderPaymentHistory() {
     `<div class="page"><div class="page-heading"><div><p class="eyebrow">YOUR TRANSACTIONS</p><h1>Payment history</h1><p>Track every submitted proof and admin decision.</p></div><button class="button lime small" data-page="payments">Submit proof ↗</button></div><div class="card table-card"><table class="data-table"><thead><tr><th>Event</th><th>Submitted</th><th>Amount</th><th>Reference</th><th>Proof</th><th>Status</th><th>Note</th></tr></thead><tbody>${data.payments.map((item) => `<tr><td><strong>${esc(item.event_name)}</strong></td><td>${dateText(item.submitted_at)}</td><td>${money(item.amount)}</td><td style="font-family:'DM Mono';font-size:10px">${esc(item.reference_number)}</td><td><a class="text-link" href="${esc(item.proof_path)}" target="_blank" rel="noreferrer">View proof ↗</a></td><td>${statusPill(item.status)}</td><td>${item.admin_reason ? esc(item.admin_reason) : "—"}</td></tr>`).join("") || `<tr><td colspan="7"><div class="empty-state"><strong>No payment history</strong><p>Your submitted proofs will appear here.</p></div></td></tr>`}</tbody></table></div></div>`;
 }
 
-// Renders the profile and details editing form
+// Renders the profile and a form for editing details.
 async function renderProfile() {
   const data = await api("/api/profile");
   state.profile = data.profile;
@@ -687,7 +686,7 @@ async function renderProfile() {
     `<div class="page"><div class="page-heading"><div><p class="eyebrow">YOUR PICKLEBALLS IDENTITY</p><h1>My profile</h1><p>Keep your player details up to date.</p></div></div><div class="profile-layout"><div class="card profile-card"><div class="profile-big">${initials(p.full_name)}</div><h2>${esc(p.full_name)}</h2><p>${esc(p.email)}</p><div class="profile-facts"><div class="profile-fact"><span>Skill level</span><strong>${esc(p.skill_level || "Beginner")}</strong></div><div class="profile-fact"><span>City</span><strong>${esc(p.city || "Not set")}</strong></div><div class="profile-fact"><span>Phone</span><strong>${esc(p.phone || "Not set")}</strong></div></div></div><div class="card"><div class="card-title"><h3>Edit details</h3><span class="pill confirmed">Member</span></div><form id="profile-form" class="profile-form"><label class="field-label full-width">Full name<input required class="field-input" name="fullName" value="${esc(p.full_name)}"></label><label class="field-label">Phone number<input class="field-input" name="phone" value="${esc(p.phone || "")}" placeholder="09xx xxx xxxx"></label><label class="field-label">City<input class="field-input" name="city" value="${esc(p.city || "")}" placeholder="Manila"></label><label class="field-label">Skill level<select class="field-input" name="skillLevel">${["Beginner", "Intermediate", "Advanced", "Pro"].map((level) => `<option ${p.skill_level === level ? "selected" : ""}>${level}</option>`).join("")}</select></label><button class="button primary full-width" type="submit">Save changes ↗</button></form></div></div></div>`;
 }
 
-// Renders notifications and marks them as read
+// Renders notifications and marks them as read.
 async function renderNotifications() {
   const data = await api("/api/notifications");
   await api("/api/notifications/read", { method: "POST" });
@@ -697,13 +696,12 @@ async function renderNotifications() {
     `<div class="page"><div class="page-heading"><div><p class="eyebrow">STAY IN THE LOOP</p><h1>Notifications</h1><p>Important updates from the PickleBalls team.</p></div></div><div class="card">${data.notifications.map((item) => `<div class="notification-item ${item.read_at ? "" : "unread"}"><div class="notification-icon">${item.type === "warning" ? "!" : item.type === "success" ? "✓" : "◌"}</div><div><h4>${esc(item.title)}</h4><p>${esc(item.message)}</p><time>${dateText(item.created_at, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</time></div></div>`).join("") || `<div class="empty-state"><strong>You’re all caught up</strong><p>New updates will appear here.</p></div>`}</div></div>`;
 }
 
-// Renders the account settings
 async function renderSettings() {
   $("#page-container").innerHTML =
     `<div class="page"><div class="page-heading"><div><p class="eyebrow">YOUR PREFERENCES</p><h1>Settings</h1><p>Simple controls for your PickleBalls experience.</p></div></div><div class="card settings-card"><div class="setting-row"><div><strong>Event reminders</strong><small>Get updates before your registered events.</small></div><div class="switch"></div></div><div class="setting-row"><div><strong>Payment updates</strong><small>Know as soon as an admin reviews your proof.</small></div><div class="switch"></div></div><div class="setting-row"><div><strong>Account security</strong><small>Your password is securely protected.</small></div><span class="pill confirmed">Protected</span></div><div class="setting-row"><div><strong>Need to update your details?</strong><small>Manage your player identity from your profile.</small></div><button class="button ghost small" data-page="profile">Open profile ↗</button></div></div></div>`;
 }
 
-// Opens the admin console and its tabs
+// Binubuksan ang admin console at mga tab
 async function openAdmin() {
   const [
     stats,
@@ -753,7 +751,7 @@ async function openAdmin() {
   $("#new-account-button").addEventListener("click", () => showAccountModal());
 }
 
-// Creates the admin table for payments or courts
+// Gumagawa ng table para sa admin payments o courts
 function renderAdminTable() {
   const data = state.adminData;
   const target = $("#admin-table");
@@ -776,7 +774,7 @@ function renderAdminTable() {
   );
 }
 
-// Shows the support desk modal
+// Displays the support desk modal
 function showSupportModal() {
   const modal = document.createElement("div");
   modal.className = "modal-backdrop";
@@ -790,7 +788,7 @@ function showSupportModal() {
     );
 }
 
-// Shows the account modal
+// nagapakita ug account sa modal
 function showAccountModal() {
   const modal = document.createElement("div");
   modal.className = "modal-backdrop";
@@ -823,7 +821,7 @@ function showAccountModal() {
   });
 }
 
-// Shows the form for adding or editing a court
+// Displays a form for adding or editing a court.
 function showCourtModal(event = null) {
   const modal = document.createElement("div");
   modal.className = "modal-backdrop";
@@ -889,7 +887,7 @@ function showCourtModal(event = null) {
   });
 }
 
-// Shows the event form
+// display a form for the events.
 function showEventModal(event = null) {
   const modal = document.createElement("div");
   modal.className = "modal-backdrop";
@@ -923,7 +921,7 @@ function showEventModal(event = null) {
   });
 }
 
-// Shows the form for sending a notification
+// Displays a form for sending a notification.
 function showNotificationModal() {
   const modal = document.createElement("div");
   modal.className = "modal-backdrop";
