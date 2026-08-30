@@ -405,9 +405,25 @@ app.get("/api/dashboard", requireAuth, asyncRoute(async (req, res) => {
     query("SELECT COUNT(*)::int AS count FROM registrations WHERE user_id = $1 AND status <> 'cancelled'", [req.user.id]),
     query("SELECT COUNT(*)::int AS count FROM payments WHERE user_id = $1 AND status = 'verified'", [req.user.id]),
     query("SELECT COUNT(*)::int AS count FROM notifications WHERE user_id = $1 AND read_at IS NULL", [req.user.id]),
-    query(`SELECT e.name, e.event_date, e.location FROM registrations r JOIN events e ON e.id = r.event_id
-           WHERE r.user_id = $1 AND r.status <> 'cancelled' AND e.event_date >= NOW()
-           ORDER BY e.event_date LIMIT 1`, [req.user.id])
+    query(`SELECT name, event_date, location, slot_times, status FROM (
+             SELECT e.name, MIN(cs.slot_date)::timestamptz AS event_date, e.location,
+               STRING_AGG(TO_CHAR(cs.start_time, 'HH12:MI AM') || '–' || TO_CHAR(cs.end_time, 'HH12:MI AM'), ', ' ORDER BY cs.start_time) AS slot_times,
+               r.status, MIN(cs.start_time) AS start_time
+             FROM registrations r
+             JOIN events e ON e.id = r.event_id
+             JOIN registration_slots rs ON rs.registration_id = r.id
+             JOIN court_slots cs ON cs.id = rs.slot_id
+             WHERE r.user_id = $1 AND r.status <> 'cancelled' AND cs.slot_date >= CURRENT_DATE
+             GROUP BY r.id, e.id, e.name, e.location, r.status
+             UNION ALL
+             SELECT e.name, e.event_date, e.location, NULL::text AS slot_times,
+               r.status, NULL::time AS start_time
+             FROM registrations r
+             JOIN events e ON e.id = r.event_id
+             WHERE r.user_id = $1 AND r.status <> 'cancelled' AND e.event_date >= NOW()
+               AND NOT EXISTS (SELECT 1 FROM registration_slots rs WHERE rs.registration_id = r.id)
+           ) upcoming
+           ORDER BY event_date ASC, start_time ASC NULLS LAST LIMIT 1`, [req.user.id])
   ]);
   res.json({
     registrations: registrations.rows[0].count,
