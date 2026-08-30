@@ -588,7 +588,9 @@ app.post("/api/events/:eventId/register", requireAuth, asyncRoute(async (req, re
 
 app.get("/api/registrations", requireAuth, asyncRoute(async (req, res) => {
   const result = await query(`
-    SELECT r.id, r.status, r.registered_at, e.id AS event_id, e.name, e.event_date, e.location, e.category, e.fee,
+    SELECT r.id, r.status, r.registered_at, e.id AS event_id, e.name, e.event_date,
+      COALESCE((SELECT MIN(cs.slot_date) FROM registration_slots rs JOIN court_slots cs ON cs.id = rs.slot_id WHERE rs.registration_id = r.id), e.event_date::date) AS booking_date,
+      e.location, e.category, e.fee,
       (SELECT p.status FROM payments p WHERE p.registration_id = r.id ORDER BY p.submitted_at DESC LIMIT 1) AS payment_status,
       (SELECT STRING_AGG(TO_CHAR(cs.start_time, 'HH12:MI AM') || '–' || TO_CHAR(cs.end_time, 'HH12:MI AM'), ', ' ORDER BY cs.start_time)
        FROM registration_slots rs JOIN court_slots cs ON cs.id = rs.slot_id WHERE rs.registration_id = r.id) AS slot_times
@@ -617,8 +619,24 @@ app.put("/api/profile", requireAuth, asyncRoute(async (req, res) => {
 }));
 
 app.get("/api/schedules", requireAuth, asyncRoute(async (req, res) => {
-  const result = await query(
-    "SELECT * FROM schedules WHERE user_id = $1 ORDER BY schedule_date ASC, start_time ASC",
+  const result = await query(`
+    SELECT s.id, s.title, s.schedule_date, s.start_time, s.end_time, s.location, s.notes,
+      s.created_at, s.updated_at, 'manual' AS source, NULL::varchar AS booking_status
+    FROM schedules s
+    WHERE s.user_id = $1
+    UNION ALL
+    SELECT -r.id AS id, e.name AS title, MIN(cs.slot_date) AS schedule_date,
+      MIN(cs.start_time) AS start_time, MAX(cs.end_time) AS end_time, e.location,
+      CONCAT('Court booking · ', INITCAP(r.status)) AS notes,
+      r.registered_at AS created_at, r.registered_at AS updated_at,
+      'booking' AS source, r.status AS booking_status
+    FROM registrations r
+    JOIN events e ON e.id = r.event_id
+    JOIN registration_slots rs ON rs.registration_id = r.id
+    JOIN court_slots cs ON cs.id = rs.slot_id
+    WHERE r.user_id = $1 AND r.status <> 'cancelled'
+    GROUP BY r.id, e.id, e.name, e.location, r.status, r.registered_at
+    ORDER BY schedule_date ASC, start_time ASC`,
     [req.user.id]
   );
   res.json({ schedules: result.rows });
